@@ -1,143 +1,132 @@
-"""
-app.py
-Streamlit UI for Stock Trend Analyzer
-"""
+# ==========================================================
+# Stock Trend Analyzer V2
+# app.py
+# ==========================================================
 
 import streamlit as st
 
-from config import (
-    DEFAULT_MA,
-    DEFAULT_PERIOD,
-    DEFAULT_INTERVAL,
-    DEFAULT_CHART_DAYS,
-)
-
-from data_fetcher import get_nse_symbols, save_results
-from trend_analyzer import scan_market, analyze_stock
-from charts import plot_chart
-
-
+# ----------------------------------------------------------
+# Page Configuration
+# ----------------------------------------------------------
 st.set_page_config(
-    page_title="Stock Trend Analyzer",
+    page_title="Stock Trend Analyzer V2",
     page_icon="📈",
     layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-st.title("📈 Stock Trend Analyzer")
+# ----------------------------------------------------------
+# Session State
+# ----------------------------------------------------------
+if "scan_running" not in st.session_state:
+    st.session_state.scan_running = False
 
-st.sidebar.header("Settings")
+if "results" not in st.session_state:
+    st.session_state.results = None
 
-ma = st.sidebar.number_input(
-    "Moving Average",
-    min_value=5,
-    max_value=500,
-    value=DEFAULT_MA,
-)
+# ----------------------------------------------------------
+# Header
+# ----------------------------------------------------------
+st.title("📈 Stock Trend Analyzer V2")
+st.caption("Trend Scanner | Yahoo Finance | Streamlit")
 
-period = st.sidebar.selectbox(
-    "Period",
-    ["5D", "15D", "1mo", "3mo"],
-    index=["5D", "15D", "1mo", "3mo"].index(DEFAULT_PERIOD),
-)
+st.divider()
 
-interval = st.sidebar.selectbox(
-    "Interval",
-    ["15m", "30m", "60m"],
-    index=["15m", "30m", "60m"].index(DEFAULT_INTERVAL),
-)
+# ==========================================================
+# SIDEBAR
+# ==========================================================
 
-mode = st.sidebar.radio(
-    "Mode",
-    [
-        "Scan Market",
-        "Analyze Stock",
-    ],
-)
+with st.sidebar:
 
-if mode == "Scan Market":
+    st.header("Scanner Settings")
 
-    st.subheader("Market Scanner")
-
-    if st.button("Scan Market"):
-
-        tickers = get_nse_symbols()
-
-        with st.spinner("Scanning market..."):
-
-            results = scan_market(
-                tickers=tickers,
-                ma=ma,
-                period=period,
-                interval=interval,
-            )
-
-        st.success("Scan Completed")
-
-        st.dataframe(
-            results,
-            use_container_width=True,
-        )
-
-        save_results(results, "Trend_Output.xlsx")
-
-        with open("Trend_Output.xlsx", "rb") as f:
-
-            st.download_button(
-                "Download Excel",
-                data=f,
-                file_name="Trend_Output.xlsx",
-            )
-
-else:
-
-    st.subheader("Single Stock Analysis")
-
-    symbol = st.text_input(
-        "Enter Yahoo Symbol",
-        value="TCS.NS",
+    exchange = st.selectbox(
+        "Exchange",
+        ["NSE", "BSE"],
+        index=0
     )
 
-    if st.button("Analyze"):
+    interval = st.selectbox(
+        "Interval",
+        [
+            "1d",
+            "1wk",
+            "1mo"
+        ],
+        index=0
+    )
 
-        with st.spinner("Analyzing..."):
+    lookback = st.slider(
+        "Lookback Candles",
+        min_value=20,
+        max_value=300,
+        value=100
+    )
 
-            df, trend_date, candles = analyze_stock(
-                ticker=symbol,
-                ma=ma,
-                period=period,
-                interval=interval,
-            )
+    st.divider()
 
-        col1, col2, col3 = st.columns(3)
+    scan_button = st.button(
+        "🔍 Scan Market",
+        use_container_width=True,
+        type="primary"
+    )
 
-        col1.metric(
-            "Trend",
-            df["safe_trend"].iloc[-1],
-        )
+# ==========================================================
+# MAIN AREA
+# ==========================================================
 
-        col2.metric(
-            "Trend Started",
-            trend_date.strftime("%d-%b-%Y %H:%M"),
-        )
+left, right = st.columns([2, 1])
 
-        col3.metric(
-            "Candles",
-            candles,
-        )
+with left:
+    st.subheader("Scan Progress")
 
-        fig = plot_chart(
-            df=df,
-            ticker=symbol,
-            ma=ma,
-            days=DEFAULT_CHART_DAYS,
-        )
+    progress_bar = st.progress(0)
 
-        st.plotly_chart(
-            fig,
-            use_container_width=True,
-        )
+    status_text = st.empty()
 
-        st.dataframe(
-            df.tail(20),
-            use_container_width=True,
-        )
+    eta_text = st.empty()
+
+with right:
+    st.subheader("Statistics")
+
+    total_placeholder = st.metric("Total Stocks", "-")
+
+    completed_placeholder = st.metric("Completed", "-")
+
+    signal_placeholder = st.metric("Signals Found", "-")
+
+st.divider()
+
+# ==========================================================
+# RESULTS
+# ==========================================================
+
+st.subheader("Results")
+
+results_placeholder = st.empty()
+
+# ==========================================================
+# BUTTON ACTION
+# ==========================================================
+
+if scan_button:
+
+    st.session_state.scan_running = True
+
+    # Dummy progress (real scanning comes later)
+    progress_bar.progress(0)
+
+    status_text.info("Preparing scanner...")
+
+    eta_text.write("ETA : --")
+
+    total_placeholder.metric("Total Stocks", "0")
+
+    completed_placeholder.metric("Completed", "0")
+
+    signal_placeholder.metric("Signals Found", "0")
+
+    results_placeholder.info(
+        "Scanner backend is not connected yet.\n\n"
+        "Next file will add the configuration and then we'll start connecting the scanner."
+    )
