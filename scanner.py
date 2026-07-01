@@ -25,103 +25,6 @@ from indicators import (
 
 
 # ==========================================================
-# Trend Detection
-# ==========================================================
-
-def detect_trend(
-    df: pd.DataFrame,
-    ma_period: int,
-):
-    """
-    Detect trend based on the latest candle.
-
-    Returns
-    -------
-    trend
-    candle
-    trend_since
-    """
-
-    if len(df) < ma_period:
-        return None
-
-    ma_col = f"SMA_{ma_period}"
-
-    trend = None
-    trend_since = None
-
-    #
-    # Current Trend
-    #
-
-    if df.iloc[-1]["Close"] > df.iloc[-1][ma_col]:
-
-        current = "up"
-
-    else:
-
-        current = "down"
-
-    #
-    # Find where trend started
-    #
-
-    for i in range(len(df) - 1, -1, -1):
-
-        row = df.iloc[i]
-
-        state = (
-            "up"
-            if row["Close"] > row[ma_col]
-            else "down"
-        )
-
-        if state != current:
-
-            if i + 1 < len(df):
-
-                trend_since = df.index[i + 1]
-
-            break
-
-    #
-    # Never changed
-    #
-
-    if trend_since is None:
-
-        trend_since = df.index[0]
-
-    #
-    # Output
-    #
-
-    trend = (
-        "Up Trend"
-        if current == "up"
-        else "Down Trend"
-    )
-
-    candle = (
-        "🟢"
-        if current == "up"
-        else "🔴"
-    )
-
-    return {
-
-        "Trend": trend,
-
-        "Candle": candle,
-
-        "Trend Since": trend_since.strftime(
-            "%d-%b-%Y %H:%M"
-        )
-
-    }
-
-
-# ==========================================================
 # Scan One Symbol
 # ==========================================================
 
@@ -152,14 +55,12 @@ def scan_symbol(
             ma_period,
         )
 
-        trend = detect_trend(
+        from trend import trend_summary
 
+        trend = trend_summary(
             df,
-
             ma_period,
-
         )
-
         if trend is None:
 
             return None
