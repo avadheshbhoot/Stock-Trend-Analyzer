@@ -1,62 +1,150 @@
 """
-charts.py
-Chart utilities for Stock Trend Analyzer.
-Uses Plotly so charts work seamlessly in Streamlit.
+chart.py
+
+Draw candlestick charts.
 """
 
+import streamlit as st
 import plotly.graph_objects as go
 
+from fetch_data import (
+    get_stock_data,
+    add_moving_average,
+)
 
-def plot_chart(df, ticker: str, ma: int, days: int = 4):
+
+# ==========================================================
+# Build Figure
+# ==========================================================
+
+def build_chart(
+    symbol: str,
+    period: str,
+    interval: str,
+    ma_period: int,
+):
     """
-    Returns a Plotly figure.
+    Returns a Plotly Figure.
     """
 
-    last_date = df.index.max()
-    df = df[df.index >= (last_date - df.index.to_series().diff().median() * 0)]  # keep index type
-    cutoff = last_date - __import__("pandas").Timedelta(days=days)
-    df = df[df.index >= cutoff]
+    df = get_stock_data(
+        ticker=symbol,
+        period=period,
+        interval=interval,
+    )
+
+    df = add_moving_average(
+        df,
+        ma_period,
+    )
+
+    ma_col = f"MA_{ma_period}"
 
     fig = go.Figure()
 
+    # ------------------------------------------------------
+    # Candlestick
+    # ------------------------------------------------------
+
     fig.add_trace(
-        go.Scatter(
+
+        go.Candlestick(
+
             x=df.index,
-            y=df["Close"],
-            name="Close",
-            line=dict(width=3),
+
+            open=df["Open"],
+
+            high=df["High"],
+
+            low=df["Low"],
+
+            close=df["Close"],
+
+            name="Price",
+
         )
+
     )
 
-    colors = {
-        "15min": "#1f77b4",
-        "45min": "#ff7f0e",
-        "90min": "#2ca02c",
-        "180min": "#d62728",
-    }
+    # ------------------------------------------------------
+    # Moving Average
+    # ------------------------------------------------------
 
-    for tf in ["15min", "45min", "90min", "180min"]:
-        col = f"EMA_{ma}_{tf}"
-        if col in df.columns:
-            fig.add_trace(
-                go.Scatter(
-                    x=df.index,
-                    y=df[col],
-                    name=col,
-                    line=dict(width=1, color=colors[tf]),
-                )
-            )
+    fig.add_trace(
 
-    current_trend = df["safe_trend"].iloc[-1] if "safe_trend" in df.columns else "-"
+        go.Scatter(
+
+            x=df.index,
+
+            y=df[ma_col],
+
+            mode="lines",
+
+            name=f"MA {ma_period}",
+
+            line=dict(
+                width=2,
+                color="orange",
+            ),
+
+        )
+
+    )
+
+    # ------------------------------------------------------
+    # Layout
+    # ------------------------------------------------------
 
     fig.update_layout(
-        title=f"{ticker} | Current Trend: {current_trend}",
-        xaxis_title="Date",
+
+        title=symbol,
+
+        xaxis_title="",
+
         yaxis_title="Price",
-        hovermode="x unified",
-        template="plotly_white",
-        legend_title="Indicators",
+
         height=650,
+
+        xaxis_rangeslider_visible=False,
+
+        template="plotly_white",
+
+        legend=dict(
+            orientation="h",
+        ),
+
     )
 
     return fig
+
+
+# ==========================================================
+# Show Chart
+# ==========================================================
+
+def show_chart(
+    container,
+    symbol: str,
+    period: str,
+    interval: str,
+    ma_period: int,
+):
+    """
+    Display chart inside any Streamlit container.
+    """
+
+    fig = build_chart(
+        symbol,
+        period,
+        interval,
+        ma_period,
+    )
+
+    with container:
+
+        st.subheader(symbol)
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True,
+        )
