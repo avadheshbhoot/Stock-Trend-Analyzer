@@ -7,10 +7,8 @@ Draw candlestick charts.
 import streamlit as st
 import plotly.graph_objects as go
 
-from fetch_data import (
-    get_stock_data,
-    add_moving_average,
-)
+from fetch_data import get_stock_data
+from indicators import sma
 
 
 # ==========================================================
@@ -33,12 +31,12 @@ def build_chart(
         interval=interval,
     )
 
-    df = add_moving_average(
+    df = sma(
         df,
         ma_period,
     )
 
-    ma_col = f"MA_{ma_period}"
+    ma_col = f"SMA_{ma_period}"
 
     fig = go.Figure()
 
