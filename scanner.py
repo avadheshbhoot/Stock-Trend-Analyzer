@@ -17,7 +17,10 @@ import pandas as pd
 from fetch_data import (
     get_nse_symbols,
     get_stock_data,
-    add_moving_average,
+)
+
+from indicators import (
+    sma,
 )
 
 
@@ -42,7 +45,7 @@ def detect_trend(
     if len(df) < ma_period:
         return None
 
-    ma_col = f"MA_{ma_period}"
+    ma_col = f"SMA_{ma_period}"
 
     trend = None
     trend_since = None
@@ -144,12 +147,9 @@ def scan_symbol(
 
         )
 
-        df = add_moving_average(
-
+        df = sma(
             df,
-
             ma_period,
-
         )
 
         trend = detect_trend(
