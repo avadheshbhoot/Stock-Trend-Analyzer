@@ -3,130 +3,257 @@
 # app.py
 # ==========================================================
 
+import time
 import streamlit as st
 
 # ----------------------------------------------------------
-# Page Configuration
+# Page Config
 # ----------------------------------------------------------
+
 st.set_page_config(
     page_title="Stock Trend Analyzer V2",
     page_icon="📈",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
 # ----------------------------------------------------------
 # Session State
 # ----------------------------------------------------------
+
 if "scan_running" not in st.session_state:
     st.session_state.scan_running = False
 
 if "results" not in st.session_state:
     st.session_state.results = None
 
-# ----------------------------------------------------------
-# Header
-# ----------------------------------------------------------
+# ==========================================================
+# HEADER
+# ==========================================================
+
 st.title("📈 Stock Trend Analyzer V2")
-st.caption("Trend Scanner | Yahoo Finance | Streamlit")
+
+st.markdown(
+"""
+Find trending stocks using Moving Average analysis.
+
+Supports scanning all F&O stocks or analysing a single stock with an interactive candlestick chart.
+"""
+)
 
 st.divider()
 
 # ==========================================================
-# SIDEBAR
+# PARAMETERS
 # ==========================================================
 
-with st.sidebar:
+st.subheader("Parameters")
 
-    st.header("Scanner Settings")
+c1, c2, c3 = st.columns(3)
 
-    exchange = st.selectbox(
-        "Exchange",
-        ["NSE", "BSE"],
-        index=0
+with c1:
+    ma_period = st.number_input(
+        "Moving Average",
+        min_value=5,
+        max_value=500,
+        value=50,
+        step=5
     )
 
+with c2:
     interval = st.selectbox(
         "Interval",
         [
-            "1d",
-            "1wk",
-            "1mo"
+            "5m",
+            "15m",
+            "30m",
+            "1h",
+            "1d"
+        ],
+        index=1
+    )
+
+with c3:
+    period = st.selectbox(
+        "Period",
+        [
+            "5d",
+            "1mo",
+            "3mo",
+            "6mo",
+            "1y"
         ],
         index=0
     )
 
-    lookback = st.slider(
-        "Lookback Candles",
-        min_value=20,
-        max_value=300,
-        value=100
-    )
+st.divider()
 
-    st.divider()
+# ==========================================================
+# SCAN TYPE
+# ==========================================================
 
-    scan_button = st.button(
-        "🔍 Scan Market",
-        use_container_width=True,
+scan_type = st.radio(
+    "Select Scan Type",
+    [
+        "F&O Stocks",
+        "Manual Stock"
+    ],
+    horizontal=True
+)
+
+# ==========================================================
+# MANUAL STOCK
+# ==========================================================
+
+symbol = ""
+
+if scan_type == "Manual Stock":
+
+    symbol = st.text_input(
+        "Stock Symbol",
+        placeholder="Example : RELIANCE.NS"
+    ).upper()
+
+    run_clicked = st.button(
+        "📈 Analyze Stock",
         type="primary"
     )
 
-# ==========================================================
-# MAIN AREA
-# ==========================================================
+else:
 
-left, right = st.columns([2, 1])
-
-with left:
-    st.subheader("Scan Progress")
-
-    progress_bar = st.progress(0)
-
-    status_text = st.empty()
-
-    eta_text = st.empty()
-
-with right:
-    st.subheader("Statistics")
-
-    total_placeholder = st.metric("Total Stocks", "-")
-
-    completed_placeholder = st.metric("Completed", "-")
-
-    signal_placeholder = st.metric("Signals Found", "-")
+    run_clicked = st.button(
+        "🔍 Scan F&O Stocks",
+        type="primary"
+    )
 
 st.divider()
 
 # ==========================================================
-# RESULTS
+# PLACEHOLDERS
 # ==========================================================
 
-st.subheader("Results")
+progress_container = st.empty()
 
-results_placeholder = st.empty()
+results_container = st.empty()
+
+chart_container = st.empty()
 
 # ==========================================================
 # BUTTON ACTION
 # ==========================================================
 
-if scan_button:
+if run_clicked:
 
-    st.session_state.scan_running = True
+    # ======================================================
+    # MANUAL STOCK
+    # ======================================================
 
-    # Dummy progress (real scanning comes later)
-    progress_bar.progress(0)
+    if scan_type == "Manual Stock":
 
-    status_text.info("Preparing scanner...")
+        if symbol == "":
+            st.warning("Please enter a stock symbol.")
+            st.stop()
 
-    eta_text.write("ETA : --")
+        st.success(f"Ready to analyse {symbol}")
 
-    total_placeholder.metric("Total Stocks", "0")
+        chart_container.info(
+            "Candlestick chart will appear here.\n\n"
+            "Backend will be connected later."
+        )
 
-    completed_placeholder.metric("Completed", "0")
+    # ======================================================
+    # F&O SCAN
+    # ======================================================
 
-    signal_placeholder.metric("Signals Found", "0")
+    else:
 
-    results_placeholder.info(
-        "Scanner backend is not connected yet.\n\n"
-        "Next file will add the configuration and then we'll start connecting the scanner."
-    )
+        #
+        # Dummy symbols
+        # Replace later with F&O symbol list
+        #
+
+        symbols = [
+            "RELIANCE",
+            "INFY",
+            "TCS",
+            "HDFCBANK",
+            "ICICIBANK",
+            "SBIN",
+            "AXISBANK",
+            "LT",
+            "ITC",
+            "BAJFINANCE"
+        ]
+
+        total = len(symbols)
+
+        with progress_container.container():
+
+            st.subheader("Scanning Market")
+
+            progress = st.progress(0)
+
+            current_stock = st.empty()
+
+            processed = st.empty()
+
+            elapsed = st.empty()
+
+        start = time.time()
+
+        results = []
+
+        for i, stock in enumerate(symbols):
+
+            # ------------------------------------------
+            # Dummy processing
+            # ------------------------------------------
+
+            time.sleep(0.3)
+
+            progress.progress((i + 1) / total)
+
+            current_stock.markdown(
+                f"**Processing :** `{stock}`"
+            )
+
+            processed.markdown(
+                f"**Processed :** {i+1} / {total}"
+            )
+
+            elapsed.markdown(
+                f"**Elapsed :** {round(time.time()-start,1)} sec"
+            )
+
+            #
+            # Dummy Result
+            #
+
+            results.append(
+                {
+                    "Symbol": stock,
+                    "Trend": "Bullish",
+                    "Close": 100,
+                    f"MA{ma_period}": 98,
+                    "Signal": "BUY"
+                }
+            )
+
+        #
+        # Remove Progress Area
+        #
+
+        progress_container.empty()
+
+        #
+        # Show Results
+        #
+
+        results_container.subheader("Scan Results")
+
+        results_container.dataframe(
+            results,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.success(f"Scan completed successfully ({total} stocks).")
