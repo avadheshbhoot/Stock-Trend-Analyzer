@@ -10,7 +10,6 @@ from config import (
     DEFAULT_PERIOD,
     DEFAULT_INTERVAL,
     DEFAULT_CHART_DAYS,
-    SYMBOL_FILE,
 )
 
 from data_fetcher import get_nse_symbols, save_results
