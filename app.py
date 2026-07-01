@@ -1,5 +1,11 @@
 import streamlit as st
-import pandas as pd
+
+from scanner import scan_market
+from chart import show_chart
+from ui import (
+    init_session,
+    show_results,
+)
 
 # ==========================================================
 # PAGE
@@ -11,10 +17,12 @@ st.set_page_config(
     layout="wide",
 )
 
+init_session()
+
 st.title("📈 Stock Trend Analyzer V2")
 
 st.write(
-    """
+"""
 Find trending stocks using Moving Average analysis.
 
 Supports scanning all NSE F&O stocks or analysing a single stock.
@@ -83,10 +91,6 @@ mode = st.radio(
     horizontal=True,
 )
 
-# ==========================================================
-# MANUAL
-# ==========================================================
-
 manual_symbol = ""
 
 if mode == "Manual Stock":
@@ -114,106 +118,90 @@ st.divider()
 # PLACEHOLDERS
 # ==========================================================
 
-progress_placeholder = st.empty()
+progress_bar = st.empty()
 
-results_placeholder = st.empty()
-
-chart_placeholder = st.empty()
+status_text = st.empty()
 
 # ==========================================================
-# MANUAL
+# Progress Callback
+# ==========================================================
+
+def update_progress(current, total, symbol):
+
+    progress_bar.progress(current / total)
+
+    status_text.info(
+        f"Processing {symbol} ({current}/{total})"
+    )
+
+# ==========================================================
+# MANUAL STOCK
 # ==========================================================
 
 if run and mode == "Manual Stock":
 
     if manual_symbol == "":
 
-        st.warning("Please enter a stock symbol.")
+        st.warning("Please enter a symbol.")
 
     else:
 
-        chart_placeholder.info(
-            "Chart will be shown here.\n\n"
-            "This will be connected in chart.py"
-        )
+        st.session_state.selected_symbol = manual_symbol
 
 # ==========================================================
-# F&O
+# F&O SCAN
 # ==========================================================
 
 if run and mode == "F&O Stocks":
 
-    #
-    # Dummy dataframe
-    # Will come from scanner.py
-    #
+    results = scan_market(
 
-    df = pd.DataFrame(
-        {
-            "Symbol": [
-                "IRFC",
-                "LT",
-                "VBL",
-                "ICICIBANK",
-            ],
-            "Trend": [
-                "Down Trend",
-                "Up Trend",
-                "Up Trend",
-                "Down Trend",
-            ],
-            "Candle": [
-                "🔴",
-                "🟢",
-                "🟢",
-                "🔴",
-            ],
-            "Trend Since": [
-                "01-Jul-2026 15:15",
-                "01-Jul-2026 15:00",
-                "01-Jul-2026 15:15",
-                "01-Jul-2026 15:15",
-            ],
-        }
+        period=period,
+
+        interval=interval,
+
+        ma_period=ma_period,
+
+        progress_callback=update_progress,
+
     )
 
-    progress_placeholder.empty()
+    st.session_state.scan_results = results
 
-    with results_placeholder.container():
+    progress_bar.empty()
 
-        st.subheader("Results")
+    status_text.empty()
 
-        h1, h2, h3, h4, h5 = st.columns(
-            [2, 2, 1, 3, 1]
-        )
+# ==========================================================
+# RESULTS
+# ==========================================================
 
-        h1.markdown("**Symbol**")
-        h2.markdown("**Trend**")
-        h3.markdown("**Candle**")
-        h4.markdown("**Trend Since**")
-        h5.markdown("**Chart**")
+if not st.session_state.scan_results.empty:
 
-        st.divider()
+    symbol = show_results(
 
-        for _, row in df.iterrows():
+        st.session_state.scan_results
 
-            c1, c2, c3, c4, c5 = st.columns(
-                [2, 2, 1, 3, 1]
-            )
+    )
 
-            c1.write(row["Symbol"])
-            c2.write(row["Trend"])
-            c3.write(row["Candle"])
-            c4.write(row["Trend Since"])
+# ==========================================================
+# CHART
+# ==========================================================
 
-            if c5.button(
-                "📈",
-                key=row["Symbol"],
-                use_container_width=True,
-            ):
+if st.session_state.selected_symbol:
 
-                chart_placeholder.info(
-                    f"Chart for {row['Symbol']} "
-                    "will appear here.\n\n"
-                    "chart.py will handle this."
-                )
+    st.divider()
+
+    show_chart(
+
+        st.container(),
+
+        st.session_state.selected_symbol,
+
+        period,
+
+        interval,
+
+        ma_period,
+
+    )
